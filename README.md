@@ -1,226 +1,140 @@
-# Tactile Sensor SDK
+# eSkin Tactile Sensor SDK v1.0
 
-Linux 触觉传感器 C++ SDK，提供串口通信、协议帧解析、上电校准和实时数据获取功能。
+触觉传感器 C++ SDK — 串口通信、实时特征提取、切向力角度感知。
 
-## 目录结构
+## 交付文件
 
 ```
-tactile_sdk/
-├── CMakeLists.txt
+eskin_sdk_v1.0/
+├── lib/libtactile_sensor.so          # 核心动态库
 ├── include/tactile_sensor/
-│   ├── protocol.hpp          # CRC8 / 请求帧构建 / 流式帧解析器
-│   ├── serial_port.hpp       # Linux 串口封装
-│   └── tactile_sensor.hpp    # 传感器高层接口 (Config, TactileFrame, TactileSensor)
-├── src/
-│   ├── serial_port.cpp
-│   └── tactile_sensor.cpp
-├── examples/
-│   └── example_main.cpp      # 使用示例
-└── test/
-    └── test_protocol.cpp     # 协议层单元测试
+│   ├── tactile_sensor.hpp            # Config / TactileFrame / TactileSensor
+│   ├── tangential_sensor.hpp         # TangentialConfig / TangentialSensor
+│   └── api_export.h                  # 符号导出宏
+├── example/example_main.cpp          # 完整示例
+└── README.md
 ```
 
-## 依赖
-
-- CMake ≥ 3.10
-- C++14 编译器
-- Linux 系统（依赖 termios / select）
-
-## 构建
+## 编译 & 运行
 
 ```bash
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+# 编译
+g++ -std=c++14 -I./include example/example_main.cpp \
+    -L./lib -ltactile_sensor -pthread \
+    -Wl,-rpath,'$ORIGIN/lib' \
+    -o tactile_example
+
+# 运行
+./tactile_example --port /dev/ttyUSB0 --baud 921600 --rate 200 --threshold 100
 ```
-
-产物：
-
-- `libtactile_sensor.a` — 静态库
-- `tactile_example` — 示例程序
-- `test_protocol` — 协议测试
-
-## 快速开始
-
-```bash
-# 构建
-mkdir build && cd build
-cmake .. && make -j$(nproc)
-
-# 运行示例（使用默认参数）
-./tactile_example
-
-# 自定义参数
-./tactile_example --port /dev/ttyUSB0 --baud 921600 --rate 100 --threshold 80
-```
-
-| 参数            | 说明          | 默认值           |
-| --------------- | ------------- | ---------------- |
-| `--port`      | 串口设备路径  | `/dev/ttyUSB0` |
-| `--baud`      | 波特率        | `921600`       |
-| `--rate`      | 轮询频率 (Hz) | `200`          |
-| `--threshold` | 触发阈值      | `100`          |
-
-输出示例：
-
-```
-mean=152.3 max=780 sum=42100.1
-阵列 [12x7]:
-    0   120     0     0    505     0     0
-    0    80   320   150     0     0    95
-    ...
-----------------------------------------
-```
-
-`Ctrl+C` 退出。示例源码见 [examples/example_main.cpp](examples/example_main.cpp)。
 
 ## API 参考
 
-### Config 配置结构体
+### Config — 全部可配置参数
 
-| 字段              | 类型            | 默认值             | 说明                                                |
-| ----------------- | --------------- | ------------------ | --------------------------------------------------- |
-| `port`          | `std::string` | `"/dev/ttyUSB0"` | 串口设备路径                                        |
-| `baudrate`      | `int`         | `921600`         | 波特率                                              |
-| `poll_rate`     | `double`      | `200.0`          | 轮询频率 (Hz)                                       |
-| `threshold`     | `int`         | `100`            | 去基线后的阈值，低于此值归零                        |
-| `rows`          | `int`         | `12`             | 传感器行数                                          |
-| `cols`          | `int`         | `7`              | 传感器列数                                          |
-| `single_sensor` | `bool`        | `true`           | `true`: 单片传感器；`false`: 双片（四象限统计） |
-| `dev_addr`      | `uint8_t`     | `0x34`           | 设备地址                                            |
-| `start_addr`    | `uint32_t`    | `0x00001C00`     | 读取起始地址                                        |
-| `buffer_len`    | `int`         | `100`            | 上电校准所需帧数                                    |
+| 分类             | 字段                      | 类型         | 默认值             | 说明                         |
+| ---------------- | ------------------------- | ------------ | ------------------ | ---------------------------- |
+| **连接**   | `port`                  | `string`   | `"/dev/ttyUSB0"` | 串口设备路径                 |
+|                  | `baudrate`              | `int`      | `921600`         | 波特率                       |
+|                  | `poll_rate`             | `double`   | `200.0`          | 轮询频率 (Hz)                |
+| **几何**   | `rows`                  | `int`      | `12`             | 传感器行数                   |
+|                  | `cols`                  | `int`      | `7`              | 传感器列数                   |
+|                  | `single_sensor`         | `bool`     | `true`           | 单片 / 双片模式              |
+| **协议**   | `dev_addr`              | `uint8_t`  | `0x34`           | 设备地址                     |
+|                  | `start_addr`            | `uint32_t` | `0x00001C00`     | 读取起始地址                 |
+| **校准**   | `threshold`             | `int`      | `100`            | 去基线后阈值，低于此值归零   |
+|                  | `buffer_len`            | `int`      | `100`            | 上电校准帧数                 |
+| **切向力** | `tang_threshold_factor` | `float`    | `5.0`            | 动态阈值倍数                 |
+|                  | `tang_collect_frames`   | `int`      | `20`             | 阈值学习帧数 (≤0=阈值0)     |
+|                  | `tang_stability_frames` | `int`      | `5`              | 连续低压帧数→自动复位原点   |
+|                  | `tang_reset_at_frame`   | `int`      | `0`              | 第N帧自动复位 (0=禁用)       |
+|                  | `tang_refine_cnt`       | `int`      | `10`             | 稳定帧数→二次精修 (0=禁用)  |
+|                  | `tang_refine_distance`  | `float`    | `0.1`            | 稳定判定距离 (cells, 0=禁用) |
 
-### TactileFrame 数据结构
+### TactileFrame — 每帧数据
 
-| 字段          | 类型                   | 说明                                           |
-| ------------- | ---------------------- | ---------------------------------------------- |
-| `raw_data`  | `std::vector<int>`   | 原始 uint16 值（未处理）                       |
-| `fine_data` | `std::vector<int>`   | 去基线 + 阈值过滤后的值（size = rows × cols） |
-| `dev_data`  | `std::vector<float>` | 统计量                                         |
-
-`dev_data` 内容取决于 `single_sensor` 配置：
-
-- **单片模式** (`single_sensor = true`)：`[mean, max, sum]` — 全局均值、最大值、总和
-- **双片模式** (`single_sensor = false`)：`[mean1, max1, sum1, mean2, max2, sum2]` — 上下两半区域各自的统计量
+| 字段                     | 类型            | 说明                                                          |
+| ------------------------ | --------------- | ------------------------------------------------------------- |
+| `rawArrayData`         | `vector<int>` | 原始 ADC 值 (rows×cols)                                      |
+| `fineArrayData`        | `vector<int>` | 去基线+阈值后 (rows×cols)                                    |
+| `minValue`             | `float`       | 最小值                                                        |
+| `maxValue`             | `float`       | 最大值                                                        |
+| `sumValue`             | `float`       | 总和                                                          |
+| `meanValue`            | `float`       | 均值                                                          |
+| `forceDerivative`      | `float`       | 力导数 df/dt                                                  |
+| `copX`                 | `float`       | 压力中心 X (长边方向, cells)                                  |
+| `copY`                 | `float`       | 压力中心 Y (短边方向, cells)                                  |
+| `sensingArea`          | `int`         | 感应面积 (非零像素数)                                         |
+| `tangentialForceAngle` | `float`       | 切向力角度 0~360°（指腹向上，指尖对外朝向为0度，顺时针方向） |
 
 ### TactileSensor 类
 
-#### `explicit TactileSensor(const Config& cfg)`
+```cpp
+class TactileSensor {
+public:
+    explicit TactileSensor(const Config& cfg);
+    ~TactileSensor();
 
-构造函数，传入配置。不会打开串口。
+    bool start();                              // 打开串口, 启动后台轮询
+    void stop();                               // 停止并关闭串口
+    bool isRunning() const;                    // 运行状态
+    bool isCalibrated() const;                 // 底噪校准状态
 
-#### `bool start()`
+    void setDataCallback(DataCallback cb);     // 注册回调 (后台线程调用)
+    bool getLatest(TactileFrame& out);         // 线程安全获取最新帧
 
-打开串口并启动后台轮询线程。返回 `true` 表示启动成功。启动后自动进入上电校准阶段：
+    void recalibrate();                        // 重新底噪校准
+    void recalibrateTangential();              // 手动复位切向力原点
+};
+```
 
-1. 采集 `buffer_len` 帧原始数据
-2. 计算每个传感点的均值作为底噪基线
-3. 校准完成后，后续每帧自动减去基线并应用阈值
+**启动后自动流程**：
 
-可通过 `isCalibrated()` 查询校准是否完成，或调用 `recalibrate()` 重新校准。
+1. 采集 `buffer_len` 帧 → 计算底噪基线
+2. 校准完成 → 开始触发回调
+3. 切向力算法自动学习阈值、锁定原点、二次精修
 
-#### `void stop()`
+### TangentialSensor 类 (可独立使用)
 
-停止轮询线程并关闭串口。可安全重复调用。
+```cpp
+#include "tactile_sensor/tangential_sensor.hpp"
 
-#### `void setDataCallback(DataCallback cb)`
+tactile::TangentialConfig tc;
+tc.rows = 12; tc.cols = 7;
 
-注册回调函数 `void(const TactileFrame&)`，每收到一帧有效数据时在后台线程中调用。**校准完成前不会触发回调**。
-
-#### `bool getLatest(TactileFrame& out)`
-
-线程安全地获取最新一帧数据的拷贝。返回 `false` 表示尚无数据。
-
-#### `void recalibrate()`
-
-清空当前基线，触发重新校准。
-
-#### `bool isRunning()` / `bool isCalibrated()`
-
-查询运行状态和校准状态。
+tactile::TangentialSensor ts(tc);
+float angle = ts.getAngle(adc_data);  // 0~360°
+ts.resetOrigin();                      // 手动复位
+```
 
 ---
 
-### SerialPort 串口类
+## 切向力角度坐标系
 
-低层串口封装，使用 termios raw 模式（8N1，无流控）。
-
-```cpp
-tactile::SerialPort sp;
-sp.open("/dev/ttyUSB0", 921600);  // 打开串口
-sp.write(data);                     // 发送数据
-int n = sp.read(buf, 1024, 100);   // 读取（超时 100ms，返回 0 表示超时）
-sp.flushInput();                    // 清空输入缓冲
-sp.close();                         // 关闭
 ```
+12×7 阵列 (从传感器背部看):
+  [0,0]=右上角, [11,6]=左下角
 
-支持的波特率：`9600`, `19200`, `38400`, `57600`, `115200`, `230400`, `460800`, `921600`。
+角度定义 (0~360°, 逆时针):
+   -X 方向 (长边负向) =   0°
+   +Y 方向 (短边正向) =  90°
+   +X 方向 (长边正向) = 180°
+   -Y 方向 (短边负向) = 270°
+
+            0° (-X)
+             ↑
+   270° ←───┼───→ 90° (+Y)
+             ↓
+           180° (+X)
+```
 
 ---
 
-### Protocol 协议层
+## 依赖
 
-`protocol.hpp` 为 header-only，提供三个核心工具：
-
-#### CRC8-ITU 校验
-
-```cpp
-uint8_t crc = tactile::protocol::crc8_itu(data_ptr, length);
-```
-
-多项式 `0x07`，结果异或 `0x55`。
-
-#### 构建请求帧
-
-```cpp
-auto frame = tactile::protocol::buildRequestFrame(
-    0x34,             // 设备地址
-    0x00001C00,       // 起始地址
-    160               // 期望字节数
-);
-// → 14 字节: 55 AA + len(9,LE) + dev_addr + reserved + 0xFB + addr(LE32) + count(LE16) + CRC8
-```
-
-#### 流式帧解析器 FrameParser
-
-```cpp
-tactile::protocol::FrameParser parser(160);  // 期望的传感器数据字节数
-
-// 持续喂入接收到的字节
-parser.feed(rx_buffer, n);
-
-// 循环提取已通过 CRC 校验的有效帧
-std::vector<uint8_t> payload;
-while (parser.nextFrame(payload)) {
-    // payload 为传感器数据段（已跳过协议头）
-}
-```
-
-帧格式：`AA 55` (帧头) + payload_len (LE16) + 载荷 + CRC8。
-
----
-
-## 运行测试
-
-```bash
-cd build
-./test_protocol
-```
-
-测试覆盖：
-
-- CRC8-ITU 正确性
-- 请求帧格式验证
-- 正常帧解析
-- 带垃圾前缀 + 逐字节分片喂入
-- CRC 错误帧应被拒绝
-
----
-
-## 注意事项
-
-1. **权限**：串口设备需要读写权限，可将用户加入 `dialout` 组：`sudo usermod -a -G dialout $USER`
-2. **校准**：启动后传感器需要静止放置，等待 `buffer_len` 帧采集完成。校准时无回调触发。
-3. **线程安全**：`setDataCallback` 和 `getLatest` 是线程安全的。回调在后台线程执行，避免在回调中做耗时操作。
-4. **阈值调优**：`threshold` 用于过滤底噪波动，根据实际传感器响应调整。
+| 依赖      | 最低版本     |
+| --------- | ------------ |
+| Linux     | x86_64       |
+| glibc     | 2.17         |
+| libstdc++ | 6.0 (GCC 5+) |
+| pthread   | 系统自带     |
