@@ -12,6 +12,9 @@ eskin_sdk_v1.0/
 │   ├── tangential_sensor.hpp         # TangentialConfig / TangentialSensor
 │   └── api_export.h                  # 符号导出宏
 ├── example/example_main.cpp          # 完整示例
+├── record/
+│   ├── record_press.cpp               # 按压录制工具源码
+│   └── record_press                   # 录制工具可执行文件
 └── README.md
 ```
 
@@ -27,6 +30,64 @@ g++ -std=c++14 -I./include example/example_main.cpp \
 # 运行
 ./tactile_example --port /dev/ttyUSB0 --baud 921600 --rate 200 --threshold 100
 ```
+
+## 录制工具
+
+`record/record_press.cpp` — 按压数据录制，持续打印每帧信息，支持持续录制和单帧快照。
+
+### 编译
+
+```bash
+g++ -std=c++14 -I./include record/record_press.cpp \
+    -L./lib -ltactile_sensor -pthread \
+    -Wl,-rpath,'$ORIGIN/../lib' \
+    -o record/record_press
+```
+
+### 运行
+
+```bash
+./record/record_press --port /dev/ttyUSB2 --out ./record_data
+```
+
+### 按键
+
+| 按键 | 功能 |
+|------|------|
+| **空格** | 持续录制 开/关（每次按压保存一个 JSON） |
+| **s** | 单帧快照（截取当前帧保存为 JSON） |
+| **q** | 退出 |
+
+### 输出文件
+
+```
+record_data/
+├── press_001_20260729_123241_880.json   # 持续录制
+├── press_002_20260729_123245_234.json
+├── snap_001_20260729_123250_456.json    # 单帧快照
+└── snap_002_20260729_123252_789.json
+```
+
+序号连续递增，文件名含时间戳，不会覆盖。
+
+### JSON 格式
+
+```json
+{
+  "rows": 12,
+  "cols": 7,
+  "frame_count": 45,
+  "frames": [
+    {
+      "time_us": 0,
+      "raw_data": [100, 200, ...],
+      "fine_data": [0, 50, ...]
+    }
+  ]
+}
+```
+
+---
 
 ## API 参考
 

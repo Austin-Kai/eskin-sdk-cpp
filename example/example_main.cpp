@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     cfg.start_addr = 0x00001C00;      // 读取起始地址
 
     // —— 校准 ——
-    cfg.threshold  = 100;             // 去基线后阈值 (低于此值归零)
+    cfg.threshold  = 200;             // 去基线后阈值 (低于此值归零)
     cfg.buffer_len = 100;             // 上电校准帧数
 
     // —— 切向力感知 ——
@@ -68,10 +68,10 @@ int main(int argc, char** argv) {
                   << " angle=" << std::setw(6) << f.tangentialForceAngle << std::endl;
 
         // 完整阵列 (rows × cols)
-        std::cout << "阵列 (rawData)[" << rows << "x" << cols << "]:" << std::endl;
+        std::cout << "阵列 (fineData)[" << rows << "x" << cols << "]:" << std::endl;
         for (int r = 0; r < rows; ++r) {
             for (int c = 0; c < cols; ++c) {
-                std::cout << std::setw(5) << f.rawArrayData[r * cols + c] << " ";
+                std::cout << std::setw(5) << f.fineArrayData[r * cols + c] << " ";
             }
             std::cout << std::endl;
         }
