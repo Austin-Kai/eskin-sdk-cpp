@@ -1,11 +1,11 @@
-# eSkin Tactile Sensor SDK v1.0
+# eSkin Tactile Sensor SDK v2.0
 
 触觉传感器 C++ SDK — 串口通信、实时特征提取、切向力角度感知。
 
 ## 交付文件
 
 ```
-eskin_sdk_v1.0/
+eskin_sdk_v2.0/
 ├── lib/libtactile_sensor.so          # 核心动态库
 ├── include/tactile_sensor/
 │   ├── tactile_sensor.hpp            # Config / TactileFrame / TactileSensor
@@ -52,11 +52,11 @@ g++ -std=c++14 -I./include record/record_press.cpp \
 
 ### 按键
 
-| 按键 | 功能 |
-|------|------|
+| 按键           | 功能                                    |
+| -------------- | --------------------------------------- |
 | **空格** | 持续录制 开/关（每次按压保存一个 JSON） |
-| **s** | 单帧快照（截取当前帧保存为 JSON） |
-| **q** | 退出 |
+| **s**    | 单帧快照（截取当前帧保存为 JSON）       |
+| **q**    | 退出                                    |
 
 ### 输出文件
 
@@ -173,7 +173,7 @@ ts.resetOrigin();                      // 手动复位
 ## 切向力角度坐标系
 
 ```
-12×7 阵列 (从传感器背部看):
+12×7 阵列 (从夹持面正面看):
   [0,0]=右上角, [11,6]=左下角
 
 角度定义 (0~360°, 逆时针):
